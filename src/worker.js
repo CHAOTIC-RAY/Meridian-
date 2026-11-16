@@ -24,11 +24,15 @@ function clientValue(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 40;
 }
 async function prepareShowtime(db, key) {
-  const marker = await db.prepare("INSERT OR IGNORE INTO seeded (showtime) VALUES (?)").bind(key).run();
-  if (marker.meta.changes === 1) {
+  // Seed marker and generated sold seats in one atomic batch. If two first-time
+  // requests race, INSERT OR IGNORE keeps the deterministic seed idempotent.
+  const marker = await db.prepare("SELECT 1 FROM seeded WHERE showtime = ?").bind(key).first();
+  if (!marker) {
     let seed = 2166136261;
     for (const byte of new TextEncoder().encode(key)) seed = Math.imul(seed ^ byte, 16777619) >>> 0;
-    const statements = [];
+    const statements = [
+      db.prepare("INSERT OR IGNORE INTO seeded (showtime) VALUES (?)").bind(key),
+    ];
     for (let row = 0; row < 9; row++) {
       for (let col = 1; col <= COLS; col++) {
         seed = (seed + 0x6D2B79F5) >>> 0;
@@ -43,7 +47,7 @@ async function prepareShowtime(db, key) {
         }
       }
     }
-    if (statements.length) await db.batch(statements);
+    await db.batch(statements);
   }
   await db.prepare("DELETE FROM seats WHERE kind='held' AND expires <= ?").bind(now()).run();
 }
