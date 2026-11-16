@@ -1,0 +1,16 @@
+{
+  "name": "meridian-cinemas",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create meridian-db",
+    "db:migrate:local": "wrangler d1 migrations apply meridian-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply meridian-db --remote",
+    "typecheck": "node --check src/worker.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
